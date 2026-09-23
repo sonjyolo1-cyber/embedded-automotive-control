@@ -1,0 +1,24 @@
+# Keil uVision generated files
+Objects/
+Listings/
+*.uvguix.*
+*.uvoptx
+*.scvd
+*.dep
+*.bak
+*.__i
+*.crf
+*.d
+*.o
+*.axf
+*.hex
+*.lnp
+*.map
+*.htm
+*.sct
+RTE/_*/
+EventRecorderStub.scvd
+
+# Keep the actual project/config files
+!*.uvprojx
+!*.uvoptx
