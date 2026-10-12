@@ -22,3 +22,8 @@ EventRecorderStub.scvd
 # Keep the actual project/config files
 !*.uvprojx
 !*.uvoptx
+
+build/
+firmware/Objects/
+firmware/Listings/
+*.uvguix.*
