@@ -68,3 +68,21 @@ because the code was not yet under version control.
 - Unity added as a git submodule under `tests/unity`. Host compiler: GCC 14.2.0 (MSYS2 UCRT64).
 - First host test `tests/test_smoke.c`: 2 tests, 0 failures (includes the tick wrap-around rule).
 - Clone with `git clone --recursive`, or run `git submodule update --init` after a plain clone.
+
+### 2026-10-13 to 10-14: turn signal state machine with hazard
+- `app/turn_signal.c`: pure C, stalk toggle table (3 x 2 lookup) + if-logic for HAZARD.
+- Decisions: toggle semantics (press the active side again = off); HAZARD has the highest priority;
+  LEFT/RIGHT during hazard move a virtual stalk (`resume_state`) through the same table, HAZARD again returns to it.
+- Guards for out-of-range event / corrupted state (C does not check array bounds).
+- `tests/test_turn_signal.c`: 17 tests, 0 failures.
+- Why host tests instead of Keil: pure logic needs no chip; runs in under a second, no flashing, no board.
+
+### 2026-10-16: blink logic (fake ticks)
+- `app/blink.c`: input `state` + `now_ms`, output on/off per side; `main` only writes the result to the lamps.
+- Remembers `prev_state` (detect change, like `raw_prev`), `last_ms`, `phase_on`.
+- State change restarts the phase ON: the lamp lights at once, so the driver does not press again
+  (which, with toggle semantics, would switch the signal off).
+- Hand-traced a 1000 ms stall: `last += 333` flips the phase three times in a row until it catches up with the grid;
+  final phase correct, harmless for LEDs, noted as a risk for the buzzer.
+- `tests/test_blink.c`: 13 tests, 0 failures. Checked that the tests catch a broken version
+  (`last = now` instead of `last += 333`; no restart on state change).

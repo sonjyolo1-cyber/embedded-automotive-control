@@ -128,10 +128,46 @@ Lives in `app/turn_signal.c`: pure C, no register headers, unit-tested on the PC
 
 ---
 
+## 5b. Blink logic
+
+Lives in `app/blink.c`: pure C, unit-tested on the PC with fake ticks (each test passes `now_ms` by hand).
+
+### Decisions
+
+1. **Input = `state` + `now_ms`.** `main` reads `g_ticks` and passes the value in; the module never reads
+   `g_ticks` itself, so it links and runs on the PC. It does not see buttons: `turn_signal` already turned
+   presses into `state` (e.g. LEFT during hazard leaves `state` = HAZARD, so blink needs no extra rule).
+2. **Output = on/off per side** (`blink_out_t { left, right }`), not one on/off value.
+   Every decision (which side follows the phase) is inside tested code; `main` only writes the result.
+3. **Memory:** `prev_state` (detect a state change, same idea as `raw_prev` in the button driver),
+   `last_ms` (start of the current phase), `phase_on` (no register to toggle, so the module keeps the phase).
+4. **State change restarts the phase ON**, counted from that moment. The lamp lights at once; a delay of up to
+   333 ms could make the driver press again, which with toggle semantics would switch the signal off.
+5. **Phase flips with `last_ms += 333`** (fixed grid, no drift, wrap-around safe), at most one flip per call.
+
+| state | left | right |
+|---|---|---|
+| OFF | 0 | 0 |
+| LEFT | `phase_on` | 0 |
+| RIGHT | 0 | `phase_on` |
+| HAZARD | `phase_on` | `phase_on` |
+
+API: `blink_init(&b, now_ms)` (starts as if OFF, so the first press counts as a change);
+`blink_out_t blink_update(&b, state, now_ms)` once per loop pass. Corrupted state -> `{0, 0}`.
+
+### Risks
+
+- After `main` stalls (breakpoint, long UART print), consecutive calls flip the phase several times within
+  microseconds until `last_ms` catches up with the grid. Final phase is correct and invisible on LEDs, but a
+  buzzer that clicks on every flip would click several times: revisit in Phase 5.
+- If `main` forgets to call `blink_update` every pass, the lamps freeze: checked on the board.
+
+---
+
 ## 6. Software structure
 
 ```
-app/            pure C application logic, no hardware (turn_signal)
+app/            pure C application logic, no hardware (turn_signal, blink)
 firmware/       Keil project: startup, drivers (gpio, lamps, systick, buttons, uart), main.c
 tests/          Unity tests run on the PC; tests/unity is a git submodule
 docs/           design.md, devlog.md
@@ -153,11 +189,19 @@ Host (`tests/test_turn_signal.c`, 17 tests, all pass):
 stalk table (6), entering hazard (3), hazard priority (2), leaving hazard via virtual stalk (3),
 HAZARD + LEFT in either order (1), input guards (2).
 
+Host (`tests/test_blink.c`, 13 tests, all pass, fake ticks):
+OFF all off, LEFT on at once / off at +333 / on at +666, RIGHT right side only, HAZARD both in sync,
+LEFT -> RIGHT restarts the phase, LEFT -> OFF off at once, LEFT pressed during hazard keeps the rhythm,
+catch-up after a 1000 ms stall, 32-bit tick wrap, corrupted state.
+
 Build and run from the repo root:
 
 ```
 gcc -std=c99 -Wall -Wextra -I tests/unity/src -I app tests/test_turn_signal.c app/turn_signal.c tests/unity/src/unity.c -o build/test_turn_signal.exe
 build\test_turn_signal.exe
+
+gcc -std=c99 -Wall -Wextra -I tests/unity/src -I app tests/test_blink.c app/blink.c app/turn_signal.c tests/unity/src/unity.c -o build/test_blink.exe
+build\test_blink.exe
 ```
 
 Hardware checks done in Phase 3: 20 presses -> 20 events, 3 s hold -> 1 event, held during reset -> 0 events,
