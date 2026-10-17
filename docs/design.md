@@ -121,10 +121,24 @@ Lives in `app/turn_signal.c`: pure C, no register headers, unit-tested on the PC
 
 ### Open points
 
-- Two button events in the same loop pass: processing order changes the result for LEFT + RIGHT.
-  `main.c` will process in a fixed order (decided at integration). HAZARD + LEFT gives the same result
-  in either order (tested).
+- ~~Two button events in the same loop pass: processing order changes the result for LEFT + RIGHT.~~
+  Resolved (2026-10-18), see "LEFT + RIGHT conflict" below.
 - "Tap = blink 3 times" (Phase 6) is a conditional transition and will not fit the lookup table alone.
+
+### LEFT + RIGHT conflict
+
+A hand laid across both buttons is a mistake, not a command. Two fingers rarely land in the same 1 ms
+loop pass; they usually differ by a few to tens of ms, so checking only "same pass" would almost never fire.
+
+1. **React at once, the later button loses.** A LEFT press while RIGHT is held (debounced level,
+   `button_is_pressed`) is dropped, and the other way round. The first button has already acted.
+   - Chosen over "wait ~50 ms, then drop both": every normal press would be delayed, and the driver
+     can fix a wrong side by pressing again.
+2. **Same pass, both edges: drop both.** Neither came first, so nothing happens.
+3. **HAZARD is never in conflict.** It is passed through; HAZARD + LEFT gives the same result in either order (tested).
+4. During hazard the same rule applies, so a conflict does not move `resume_state` either (Claude's call).
+5. **Pure function in `app/`**, unit tested on the PC. It takes "pressed this pass" and "held now" for each
+   button and returns the events to send to `turn_signal_step`. `main.c` only reads the buttons and forwards the result.
 
 ---
 
