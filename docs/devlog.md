@@ -101,3 +101,6 @@ because the code was not yet under version control.
   current driver (update and reads in the same pass). Test kept as a guard, comment fixed.
 - `tests/test_press_filter.c`: 15 tests, 0 failures. All host suites pass: smoke 2, turn_signal 17,
   blink 13, press_filter 15 (`-Wall -Wextra -pedantic`, no warnings).
+- Keil project uses ARM Compiler 6 (armclang 6.24) in C99 mode (`buttons.c` already relies on it with
+  `for (uint8_t i ...)`). `press_filter.c` still declares its locals at the top so it also builds as C90
+  (checked with `gcc -std=c90 -pedantic`).

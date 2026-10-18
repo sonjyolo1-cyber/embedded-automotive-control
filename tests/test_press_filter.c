@@ -73,8 +73,8 @@ static void test_right_dropped_while_left_held(void)
     TEST_ASSERT_EQUAL_UINT8(0U, n);
 }
 
-/* Rule 2: both edges in the same pass. The driver reports both as held too,
- * so rule 1 already drops both. */
+/* Both edges in the same pass, and both held (what the driver reports today):
+ * rule 1 and rule 2 both drop them. */
 static void test_left_and_right_same_pass_gives_nothing(void)
 {
     in.left_pressed  = 1U;
