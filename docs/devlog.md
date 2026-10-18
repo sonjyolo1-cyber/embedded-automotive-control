@@ -86,3 +86,18 @@ because the code was not yet under version control.
   final phase correct, harmless for LEDs, noted as a risk for the buzzer.
 - `tests/test_blink.c`: 13 tests, 0 failures. Checked that the tests catch a broken version
   (`last = now` instead of `last += 333`; no restart on state change).
+
+### 2026-10-18: press filter (LEFT + RIGHT conflict), test first
+- `app/press_filter.c`: pure function, takes "pressed this pass" + "held now", returns the events for
+  `turn_signal_step` in the order LEFT, RIGHT, HAZARD. No state.
+- Rules: the later button loses while the other is held; both edges in the same pass drop both;
+  HAZARD always passes. Rule 2 coded as its own check, so it does not rely on the driver setting "held"
+  in the same pass (it does today, but would not if `buttons_update` moved into the SysTick ISR).
+- TDD: tests written first; red with a `return 0` stub (4 pass, 8 fail), then also checked against a
+  version that forgets the conflict rule (5 fail), so every test has been red at least once.
+  Rule 2 and the NULL guard were each added red first (wrong count, segfault), then green.
+- `n = 0xFF` in `setUp`: a value the filter never returns, so a test that forgets to call it fails.
+- Corrected a wrong assumption from the plan: "pressed but already released" cannot happen with the
+  current driver (update and reads in the same pass). Test kept as a guard, comment fixed.
+- `tests/test_press_filter.c`: 15 tests, 0 failures. All host suites pass: smoke 2, turn_signal 17,
+  blink 13, press_filter 15 (`-Wall -Wextra -pedantic`, no warnings).

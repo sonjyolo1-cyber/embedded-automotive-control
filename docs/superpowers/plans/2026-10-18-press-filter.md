@@ -24,7 +24,7 @@
 
 1. **Both edges in the same pass.** At the pass where a press is detected, the driver also reports that button as held (`stable` becomes 1 in the same `buttons_update`). So when both are pressed, both are also held, and rule 1 drops both: no extra rule is needed. Pinned by `test_left_and_right_same_pass_gives_nothing`.
 2. **Hand on all three buttons.** HAZARD must still pass when LEFT and RIGHT are both held. Pinned by `test_hazard_passes_while_left_and_right_held`.
-3. **Press already released when read** (e.g. a long UART print stalls the loop): `left_pressed = 1`, `left_held = 0`. The press still counts; only the *other* side's held flag matters. Pinned by `test_left_press_counts_even_if_left_already_released`.
+3. **Own held flag never drops a press:** `left_pressed = 1`, `left_held = 0` still gives LEFT; only the *other* side's held flag matters. Pinned by `test_left_press_counts_even_if_left_already_released`. (Corrected 2026-10-18: this input cannot come from the current driver, since `buttons_update` and the reads run in the same pass and a stalled loop stalls both. The test is kept as a guard.)
 4. **Fixed output order** LEFT, RIGHT, HAZARD (enum order), so a run on the board equals a run in the test. Pinned by `test_hazard_and_left_gives_left_then_hazard`.
 5. **Holding one side for a long time** blocks the other side for as long as it is held, then the other side works again. Pinned by `test_right_works_again_after_left_released`.
 
@@ -63,11 +63,11 @@ uint8_t n = press_filter_events(&in, ev);
 for (uint8_t i = 0U; i < n; i++) { turn_signal_step(&ts, ev[i]); }
 ```
 
-- [ ] **Step 1: Write the header `app/press_filter.h`**
+- [x] **Step 1: Write the header `app/press_filter.h`**
 
 Include guard, `#include <stdint.h>`, `#include "turn_signal.h"`, the struct and prototype above, and a header comment with the rule in the same style as `blink.h` (what it takes, what it returns, the rule from design.md).
 
-- [ ] **Step 2: Write the failing tests `tests/test_press_filter.c`**
+- [x] **Step 2: Write the failing tests `tests/test_press_filter.c`**
 
 Same layout as `test_blink.c`: `setUp` clears the input, a helper runs the filter, a macro checks the result.
 
@@ -101,21 +101,25 @@ Tests and their assertions:
 
 Use `TEST_ASSERT_EQUAL_UINT8` for `n` and `TEST_ASSERT_EQUAL_INT` for events (as in `test_turn_signal.c`). `main()` with `UNITY_BEGIN()`, one `RUN_TEST` per test, `return UNITY_END();`.
 
-- [ ] **Step 3: Run the tests to see them fail**
+- [x] **Step 3: Run the tests to see them fail**
 
-Create an empty `app/press_filter.c` (only `#include "press_filter.h"`), then:
+Create a stub `app/press_filter.c` whose `press_filter_events` only returns `0U` (owner's choice 2026-10-18:
+a stub builds and runs, so Unity reports each test PASS/FAIL; an empty file only gives one link error), then:
 
 ```
 gcc -std=c99 -Wall -Wextra -I tests/unity/src -I app tests/test_press_filter.c app/press_filter.c tests/unity/src/unity.c -o build/test_press_filter.exe
+build\test_press_filter.exe
 ```
 
-Expected: link error `undefined reference to 'press_filter_events'`. That is the "red".
+Expected: the 8 tests that expect at least one event FAIL on an assert. The 4 tests that expect `n == 0`
+(`nothing_pressed`, `left_dropped_while_right_held`, `right_dropped_while_left_held`,
+`left_and_right_same_pass_gives_nothing`) PASS against the stub. That is the "red".
 
-- [ ] **Step 4: Implement `press_filter_events` in `app/press_filter.c`**
+- [x] **Step 4: Implement `press_filter_events` in `app/press_filter.c`**
 
 Check LEFT, then RIGHT, then HAZARD, appending to `out` and counting. A LEFT press is kept only if `right_held == 0`, a RIGHT press only if `left_held == 0`; HAZARD always. No state, no `static` variables.
 
-- [ ] **Step 5: Run the tests to see them pass**
+- [x] **Step 5: Run the tests to see them pass**
 
 ```
 gcc -std=c99 -Wall -Wextra -I tests/unity/src -I app tests/test_press_filter.c app/press_filter.c tests/unity/src/unity.c -o build/test_press_filter.exe
@@ -124,7 +128,7 @@ build\test_press_filter.exe
 
 Expected: `12 Tests 0 Failures 0 Ignored`, `OK`, and no gcc warnings.
 
-- [ ] **Step 6: Re-run the existing suites**
+- [x] **Step 6: Re-run the existing suites**
 
 ```
 gcc -std=c99 -Wall -Wextra -I tests/unity/src -I app tests/test_turn_signal.c app/turn_signal.c tests/unity/src/unity.c -o build/test_turn_signal.exe
@@ -135,11 +139,11 @@ build\test_blink.exe
 
 Expected: `17 Tests 0 Failures`, then `13 Tests 0 Failures`.
 
-- [ ] **Step 7: Update `docs/design.md`**
+- [x] **Step 7: Update `docs/design.md`**
 
 Section 5 "LEFT + RIGHT conflict" point 5: name `press_filter_events` and `press_filter_in_t`. Section 7: add a line `Host (tests/test_press_filter.c, 12 tests, all pass): ...` and the build command from Step 5.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```
 git add app/press_filter.h app/press_filter.c tests/test_press_filter.c docs/design.md docs/superpowers/plans/2026-10-18-press-filter.md

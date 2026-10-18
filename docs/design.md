@@ -135,10 +135,19 @@ loop pass; they usually differ by a few to tens of ms, so checking only "same pa
    - Chosen over "wait ~50 ms, then drop both": every normal press would be delayed, and the driver
      can fix a wrong side by pressing again.
 2. **Same pass, both edges: drop both.** Neither came first, so nothing happens.
+   - Coded as its own check (2026-10-18), not left to rule 1. Today the driver sets "held" in the same
+     pass as "pressed", so rule 1 alone would also drop both; the own check keeps rule 2 true if the
+     driver changes (e.g. `buttons_update` moved into the SysTick ISR).
 3. **HAZARD is never in conflict.** It is passed through; HAZARD + LEFT gives the same result in either order (tested).
 4. During hazard the same rule applies, so a conflict does not move `resume_state` either (Claude's call).
-5. **Pure function in `app/`**, unit tested on the PC. It takes "pressed this pass" and "held now" for each
-   button and returns the events to send to `turn_signal_step`. `main.c` only reads the buttons and forwards the result.
+5. **Pure function in `app/`**, unit tested on the PC: `press_filter_events(&in, ev)` in `app/press_filter.c`.
+   `press_filter_in_t` holds "pressed this pass" (`button_was_pressed`) for LEFT, RIGHT, HAZARD and "held now"
+   (`button_is_pressed`) for LEFT, RIGHT. It writes the events to `ev[EVENT_COUNT]` in the fixed order
+   LEFT, RIGHT, HAZARD and returns how many (0..3); `in` or `ev` NULL returns 0. `main.c` only reads the
+   buttons and forwards each event to `turn_signal_step`.
+6. **"Pressed but already released" cannot happen with the current driver.** `buttons_update` and the reads
+   run in the same pass, so `pressed = 1` always comes with `held = 1`; a stalled `main` also stalls
+   `buttons_update`, so a press and release during a stall is missed, not seen as pressed-but-released.
 
 ---
 
@@ -181,7 +190,7 @@ API: `blink_init(&b, now_ms)` (starts as if OFF, so the first press counts as a 
 ## 6. Software structure
 
 ```
-app/            pure C application logic, no hardware (turn_signal, blink)
+app/            pure C application logic, no hardware (turn_signal, blink, press_filter)
 firmware/       Keil project: startup, drivers (gpio, lamps, systick, buttons, uart), main.c
 tests/          Unity tests run on the PC; tests/unity is a git submodule
 docs/           design.md, devlog.md
@@ -191,7 +200,8 @@ build/          host test executables (git-ignored)
 Data flow (planned for integration):
 
 ```
-SysTick ISR -> g_ticks -> buttons_update() -> button_was_pressed() -> turn_signal_step()
+SysTick ISR -> g_ticks -> buttons_update() -> button_was_pressed() / button_is_pressed()
+                                              -> press_filter_events() -> turn_signal_step()
                                                                       -> blink logic -> lamps
 ```
 
@@ -208,6 +218,11 @@ OFF all off, LEFT on at once / off at +333 / on at +666, RIGHT right side only, 
 LEFT -> RIGHT restarts the phase, LEFT -> OFF off at once, LEFT pressed during hazard keeps the rhythm,
 catch-up after a 1000 ms stall, 32-bit tick wrap, corrupted state.
 
+Host (`tests/test_press_filter.c`, 15 tests, all pass):
+single button (4), later button loses while the other is held (2), both edges in the same pass with and
+without held (2), HAZARD passes with LEFT / while both held / during a conflict (3), own held flag never
+drops a press (1), RIGHT works again after LEFT released (1), NULL input / output (2).
+
 Build and run from the repo root:
 
 ```
@@ -216,6 +231,9 @@ build\test_turn_signal.exe
 
 gcc -std=c99 -Wall -Wextra -I tests/unity/src -I app tests/test_blink.c app/blink.c app/turn_signal.c tests/unity/src/unity.c -o build/test_blink.exe
 build\test_blink.exe
+
+gcc -std=c99 -Wall -Wextra -I tests/unity/src -I app tests/test_press_filter.c app/press_filter.c tests/unity/src/unity.c -o build/test_press_filter.exe
+build\test_press_filter.exe
 ```
 
 Hardware checks done in Phase 3: 20 presses -> 20 events, 3 s hold -> 1 event, held during reset -> 0 events,
