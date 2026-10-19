@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath></IncludePath>
+              <IncludePath>..\app</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -443,6 +443,41 @@
               <FileName>uart.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\uart.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>app</GroupName>
+          <Files>
+            <File>
+              <FileName>turn_signal.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\turn_signal.c</FilePath>
+            </File>
+            <File>
+              <FileName>turn_signal.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\app\turn_signal.h</FilePath>
+            </File>
+            <File>
+              <FileName>blink.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\blink.c</FilePath>
+            </File>
+            <File>
+              <FileName>blink.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\app\blink.h</FilePath>
+            </File>
+            <File>
+              <FileName>press_filter.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\press_filter.c</FilePath>
+            </File>
+            <File>
+              <FileName>press_filter.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\app\press_filter.h</FilePath>
             </File>
           </Files>
         </Group>
