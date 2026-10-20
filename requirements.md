@@ -13,14 +13,18 @@ Pill happens later, in Phase 7.
 | R1   | Pressing LEFT shall flash both left lamps at 1.5 Hz ±10%, 50% duty.                  |
 | R2   | Pressing RIGHT shall do the same for the right lamps.                                |
 | R3   | Pressing an active LEFT/RIGHT again shall turn it off.                               |
-| R4   | Pressing the opposite side shall switch immediately, starting with lamps ON.         |
-| R5   | HAZARD shall flash all four lamps in sync and override LEFT/RIGHT; pressing it again returns to OFF. |
+| R4   | Pressing the opposite side shall switch immediately, starting with lamps ON, unless the active side's button is still held (R12). |
+| R5   | HAZARD shall flash all four lamps in sync and override LEFT/RIGHT; pressing HAZARD again returns to the virtual stalk position (R13). |
 | R6   | Left and right lamps shall never flash independently at the same time (only in hazard). |
-| R7   | Presses shorter than ~20 ms shall be ignored (debounce).                             |
+| R7   | Presses shorter than ~20 ms shall be ignored (debounce); each press gives exactly one event, also when held. |
 | R8   | The first lamp-on shall follow a press within 100 ms.                                |
-| R9   | After reset, all lamps shall be off.                                                 |
-| R10 *(stretch)* | A tap while OFF flashes exactly 3 times (lane change).                    |
-| R11 *(stretch)* | The buzzer shall tick with each flash.                                    |
+| R9   | After reset, all lamps shall be off, also when a button is held during reset.        |
+| R10 *(optional, after v1.1)* | A tap while OFF flashes exactly 3 times (lane change).       |
+| R11 *(stretch, Phase 6)* | The buzzer shall tick with each flash.                           |
+| R12  | A LEFT/RIGHT press shall be ignored while the other side's button is held; LEFT and RIGHT in the same pass are both ignored; HAZARD is always accepted. |
+| R13  | During HAZARD, LEFT/RIGHT shall move a virtual stalk with the same toggle rules, without changing the lamps. |
+
+Verification for each requirement (unit test and board check): see `docs/test_plan.md`.
 
 ## I/O List
 
@@ -36,8 +40,7 @@ Pill happens later, in Phase 7.
 - Rear-right LED
 - Buzzer *(stretch, supports R11)*
 
-*(Exact GPIO pin assignments and the wiring schematic are a Phase 2 deliverable,
-not Phase 1 — this list only fixes what signals exist, not where they connect.)*
+*(Pin assignments: see `docs/design.md`, section 1, "Pin map".)*
 
 ## Open Questions & Decisions
 
@@ -45,7 +48,7 @@ not Phase 1 — this list only fixes what signals exist, not where they connect.
 |---|----------|----------|
 | 1 | What happens if LEFT is active and the driver presses RIGHT? | Switch immediately, new side starts ON (R4). |
 | 2 | What happens if HAZARD is pressed during an active turn signal? | Hazard overrides the turn signal (R5). |
-| 3 | What happens if two buttons are pressed at the same time? | Priority order: HAZARD wins. |
+| 3 | What happens if two buttons are pressed at the same time? | LEFT + RIGHT conflict: see R12 (`press_filter`). |
 | 4 | What state should the system be in after reset? | OFF — all lamps off (R9). |
 | 5 | The buttons are momentary, not a latching stalk — what does a press mean? | Each press toggles the corresponding state. |
 | 6 | How fast should the lamps flash? | 1.5 Hz (333 ms on / 333 ms off), chosen to match real turn-signal rates (~60–120 flashes/min). |
