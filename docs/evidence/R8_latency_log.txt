@@ -1,0 +1,7 @@
+2026-10-21, Hercules, COM3 115200 8N1, main.c with MEASURE_LATENCY = 1
+Method: t1 = first falling edge on PB0 after >= 20 ms without edges (read in main),
+        t2 = loop pass where ts.state changes (lamp written in the same pass).
+Result: 20 LEFT presses -> 20 lines "dt=20 max=20" (every press, LEFT and OFF transitions).
+dt = bounce duration + 20 ms debounce. dt = 20 means all bounce edges fell inside the
+same 1 ms tick as the first edge. Resolution 1 ms -> true dt 19..21 ms.
+Expected worst case ~25 ms (max bounce 4-5 ms measured in Phase 3). Requirement <= 100 ms: PASS.

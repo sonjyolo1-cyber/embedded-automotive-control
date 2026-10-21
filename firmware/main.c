@@ -18,6 +18,26 @@ extern void SystemCoreClockUpdate();
  *   and one UART line each time the state changes.
  */
 
+/* ------------------------------------------------------------------------
+ * R8 latency measurement (Phase 5).
+ * R8 measured 2026-10-21: dt = 20 ms on 20/20 presses. Kept for re-measurement on the Blue Pill port.
+ * 1 = measure press-to-lamp latency on LEFT (PB0) and print it.
+ * 0 = normal build: every line below between #if/#endif is not compiled.
+ * ------------------------------------------------------------------------ */
+#define MEASURE_LATENCY  0
+
+#if MEASURE_LATENCY
+#define LAT_PORTB_BASE   0x40005000UL  /* GPIO Port B (APB), same base as buttons.c */
+#define LAT_LEFT_PIN     0U            /* PB0 = LEFT, active-low                   */
+#define LAT_QUIET_MS     20U           /* = DEBOUNCE_MS: quiet this long = new press */
+
+static uint8_t  lat_prev;              /* raw PB0 level on the previous pass        */
+static uint32_t lat_last_edge;         /* time of the latest edge (any bounce)      */
+static uint32_t lat_t1;                /* time of the FIRST falling edge of a press */
+static uint8_t  lat_armed;             /* 1 = t1 captured, waiting for the state change */
+static uint32_t lat_max;               /* largest dt seen since reset               */
+#endif
+
 static const char *const s_state_name[STATE_COUNT] = { "OFF", "LEFT", "RIGHT", "HAZARD" };
 
 /* Print "state=<name>\r\n". Longest line 14 chars: fits the 16-byte TX FIFO. */
@@ -49,6 +69,15 @@ int main(){
 	logged_state = ts.state;
 	log_state(logged_state);
 
+#if MEASURE_LATENCY
+	/* Start from a real read, like raw_prev in buttons.c (held at reset = no edge). */
+	lat_prev      = gpio_read_pin(LAT_PORTB_BASE, LAT_LEFT_PIN);
+	lat_last_edge = g_ticks;
+	lat_armed     = 0U;
+	lat_max       = 0U;
+	uart_puts("R8: press LEFT only\r\n");
+#endif
+
 	while(1) {
 		uint32_t now = g_ticks;         /* one time value for the whole pass */
 		press_filter_in_t in;
@@ -56,6 +85,21 @@ int main(){
 		uint8_t n;
 		uint8_t i;
 		blink_out_t out;
+#if MEASURE_LATENCY
+		uint8_t lat_raw;
+
+		/* 0. t1: first falling edge after LAT_QUIET_MS without any edge.
+		 *    Later bounce edges only move lat_last_edge, never t1. */
+		lat_raw = gpio_read_pin(LAT_PORTB_BASE, LAT_LEFT_PIN);
+		if (lat_raw != lat_prev) {
+			if ((lat_raw == 0U) && ((now - lat_last_edge) >= LAT_QUIET_MS)) {
+				lat_t1    = now;
+				lat_armed = 1U;
+			}
+			lat_last_edge = now;
+			lat_prev      = lat_raw;
+		}
+#endif
 
 		/* 1. Debounce. Must run in the same pass as the reads below, so a
 		 *    press always comes with held = 1 (design.md 5, conflict point 6). */
@@ -83,6 +127,21 @@ int main(){
 		if (ts.state != logged_state) {
 			logged_state = ts.state;
 			log_state(logged_state);
+#if MEASURE_LATENCY
+			/* t2 = now: blink lit the lamp in step 4 of this same pass. */
+			if (lat_armed != 0U) {
+				uint32_t dt = now - lat_t1;
+				lat_armed = 0U;
+				if (dt > lat_max) {
+					lat_max = dt;
+				}
+				uart_puts("dt=");
+				uart_put_uint(dt);
+				uart_puts(" max=");
+				uart_put_uint(lat_max);
+				uart_puts("\r\n");
+			}
+#endif
 		}
 	}
 }

@@ -1,0 +1,6 @@
+2026-10-21, Hercules, COM3 115200 8N1
+state=LEFT / dt=20 max=20   : LEFT pressed on the old run, then kept held
+RESET pressed while LEFT still held
+--- Phase 4: turn signal + hazard --- / SystemCoreClock = 50000000 Hz / state=OFF / R8: press LEFT only
+No event from the held button or from its release: the next 20 LEFT presses gave exactly
+20 state/dt pairs (a held-at-reset event would have made 21). Lamps off after reset.   (R9 PASS)

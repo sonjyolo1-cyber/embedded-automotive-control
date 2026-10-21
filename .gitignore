@@ -27,3 +27,5 @@ build/
 firmware/Objects/
 firmware/Listings/
 *.uvguix.*
+# Editor settings (machine-specific)
+.vscode/

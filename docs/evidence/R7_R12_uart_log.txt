@@ -1,0 +1,14 @@
+2026-10-21, Hercules, COM3 115200 8N1, firmware 0d9d2a6 (v0.4)
+Run 1:
+  state=OFF                (boot)
+  22 state changes alternating LEFT/OFF:
+    lines 1-20 : LEFT pressed 20 times -> 20 events          (R7: 1 press = 1 event)
+    line 21    : LEFT held 3 s         -> 1 event            (R7: hold = 1 event)
+    line 22    : LEFT held, RIGHT pressed -> LEFT's own event only, no state=RIGHT (R12 a)
+Run 2 (after RESET):
+  state=OFF    : boot
+  state=RIGHT  : RIGHT held; LEFT pressed while held -> no event          (R12 a, other direction)
+  state=LEFT   : hand across both, LEFT touched first, RIGHT dropped      (R12 b)
+  state=OFF    : hand across both again, LEFT first, RIGHT dropped        (R12 b)
+  state=HAZARD : both held, HAZARD pressed -> accepted                    (R12 c)
+Not run yet: hand across both with RIGHT touching first (should give state=RIGHT).

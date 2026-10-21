@@ -104,3 +104,14 @@ because the code was not yet under version control.
 - Keil project uses ARM Compiler 6 (armclang 6.24) in C99 mode (`buttons.c` already relies on it with
   `for (uint8_t i ...)`). `press_filter.c` still declares its locals at the top so it also builds as C90
   (checked with `gcc -std=c90 -pedantic`).
+
+### 2026-10-20 to 10-21: Phase 5 verification
+- requirements.md updated to the Phase 4 design: R4 and R5 changed, R7 and R9 clarified, R10 made optional, R12 (LEFT+RIGHT conflict) and R13 (virtual stalk) added.
+- Traceability in docs/test_plan.md: R1-R9, R12, R13 PASS with evidence.
+- R1 measured from video frames (no scope): 667 ms period, 1.50 Hz, duty 50%.
+- R8 latency measured with temporary code in main.c behind `#if MEASURE_LATENCY` (now 0): dt = 20 ms on every press.
+  Predicted 21-26 ms from the Phase 3 max bounce. Lesson: the prediction came from the worst case, the measurement shows the typical case.
+- Bug: PuTTY blank on COM3 although the lamps worked. Registers checked (RCGCGPIO=0x13, GPIOA AFSEL/DEN=0x03,
+  PCTL ..11, UART0 IBRD=27 FBRD=8 LCRH=0x70 CTL=0x301), all as designed. The banner is longer than the 16-byte FIFO,
+  so a stuck TX would have hung main in uart_putc and the lamps would never have run. So the bytes did leave PA1.
+  Cause: ICDI virtual COM port stuck. Fix: unplug and replug the USB cable. No code change.
