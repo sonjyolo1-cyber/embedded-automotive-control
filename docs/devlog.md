@@ -115,3 +115,27 @@ because the code was not yet under version control.
   PCTL ..11, UART0 IBRD=27 FBRD=8 LCRH=0x70 CTL=0x301), all as designed. The banner is longer than the 16-byte FIFO,
   so a stuck TX would have hung main in uart_putc and the lamps would never have run. So the bytes did leave PA1.
   Cause: ICDI virtual COM port stuck. Fix: unplug and replug the USB cable. No code change.
+
+---
+
+## Phase 6: buzzer (from 2026-10-22)
+
+### 2026-10-22: buzzer logic, test first
+- `app/buzzer.c`: input = lamp output (`out.left || out.right`), output = PE4 level. A 2 ms pulse at every lamp
+  edge (on and off), 0 otherwise: a passive buzzer only clicks when the coil current changes.
+- `tests/test_buzzer.c`: 11 tests, 0 failures, including runs with the real blink + turn_signal
+  (OFF silent, HAZARD one click per edge, stalled-loop catch-up gives one click).
+
+### 2026-10-24: buzzer on the board
+- `main.c`: `buzzer_update` right after `blink_update`, written with `lamp_set(LAMP_BUZZER, ...)`.
+  `buzzer.c` added to the Keil `app` group (first build failed with L6218E "undefined symbol buzzer_init":
+  the header was included, so it compiled, but no object file defined the function at link time).
+- Hardware: PE4 -> base resistor -> 2N2222 (low side), passive buzzer to +3.3 V, 1N4148 across the buzzer.
+- Bug: buzzer silent, and the new LEFT button on PB0 gave no event, while the UART banner came up normally.
+  Narrowed down step by step: buzzer alone clicked; writing 0xFF / 0x00 to PE4 (0x40024040) in the debugger gave
+  no click, so the fault was between PE4 and the buzzer, not in the code. Common factor of both faults: GND on the
+  breadboard. No multimeter, so tested by wiring the button's GND pin and the transistor emitter straight to a
+  LaunchPad GND pin: both worked at once. Cause: bad breadboard holes / rail segment. No code change.
+  Lesson (third time after Phase 3): when host tests pass and the board does not, check the wiring path first.
+- Board check by ear: OFF silent, LEFT and HAZARD click on every lamp edge, no double click in HAZARD (R11 PASS).
+- Host suites: smoke 2, turn_signal 17, blink 13, press_filter 15, buzzer 11, all 0 failures.

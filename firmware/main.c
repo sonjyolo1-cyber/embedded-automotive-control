@@ -6,6 +6,7 @@
 #include "turn_signal.h"
 #include "blink.h"
 #include "press_filter.h"
+#include "buzzer.h"
 
 extern uint32_t SystemCoreClock;
 extern void SystemCoreClockUpdate();
@@ -14,7 +15,7 @@ extern void SystemCoreClockUpdate();
  * Phase 4: turn signal + hazard on the board.
  * Every decision lives in app/ (unit-tested on the PC). main only moves values,
  * once per loop pass:
- *   g_ticks -> buttons -> press_filter -> turn_signal -> blink -> lamps,
+ *   g_ticks -> buttons -> press_filter -> turn_signal -> blink -> lamps -> buzzer,
  *   and one UART line each time the state changes.
  */
 
@@ -51,6 +52,7 @@ static void log_state(state_t s)
 int main(){
 	turn_signal_t ts;
 	blink_t blink;
+	buzzer_t bz;
 	state_t logged_state;
 
 	SystemCoreClockUpdate();
@@ -66,6 +68,7 @@ int main(){
 
 	turn_signal_init(&ts);
 	blink_init(&blink, g_ticks);
+	buzzer_init(&bz, g_ticks);
 	logged_state = ts.state;
 	log_state(logged_state);
 
@@ -122,6 +125,10 @@ int main(){
 		out = blink_update(&blink, ts.state, now);
 		lamp_set_left(out.left);
 		lamp_set_right(out.right);
+
+		/* 4b. Buzzer follows the LAMP output (not ts.state): silent in OFF,
+		 *     a short pulse on PE4 at every lamp edge = "tick" / "tock" (R11). */
+		lamp_set(LAMP_BUZZER, buzzer_update(&bz, (uint8_t)(out.left || out.right), now));
 
 		/* 5. Log only on a change: one short line, not one per pass. */
 		if (ts.state != logged_state) {

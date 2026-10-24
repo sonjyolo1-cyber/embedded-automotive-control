@@ -3,7 +3,7 @@
 Target: EK-TM4C123GXL LaunchPad (TM4C123GH6PM, Cortex-M4F), register-level C, no TivaWare.
 Host tests: GCC 14.2 (MSYS2 UCRT64) + Unity.
 
-Status: Phase 3 (bring-up) done. Phase 4 (application logic) in progress.
+Status: Phase 5 (verification) done, tag v0.5. Phase 6 (buzzer, R11) integrated on the board.
 
 ---
 
@@ -17,7 +17,7 @@ Status: Phase 3 (bring-up) done. Phase 4 (application logic) in progress.
 | Rear-left lamp | PE1 | output | |
 | Front-right lamp | PE2 | output | |
 | Rear-right lamp | PE3 | output | |
-| Buzzer (stretch goal) | PE4 | output | |
+| Buzzer (R11) | PE4 | output | passive buzzer driven by a 2N2222 (low side, base resistor), 1N4148 across the buzzer; 1 = transistor on |
 | LEFT button | PB0 | input | to GND, internal pull-up, active-low |
 | RIGHT button | PB1 | input | to GND, internal pull-up, active-low |
 | HAZARD button | PB2 | input | to GND, internal pull-up, active-low |
@@ -183,14 +183,42 @@ API: `blink_init(&b, now_ms)` (starts as if OFF, so the first press counts as a 
 - After `main` stalls (breakpoint, long UART print), consecutive calls flip the phase several times within
   microseconds until `last_ms` catches up with the grid. Final phase is correct and invisible on LEDs, but a
   buzzer that clicks on every flip would click several times: revisit in Phase 5.
+  Resolved in 5c: the buzzer only restarts its pulse on edges in the same ms, so the catch-up gives one click.
 - If `main` forgets to call `blink_update` every pass, the lamps freeze: checked on the board.
+
+---
+
+## 5c. Buzzer (R11)
+
+Lives in `app/buzzer.c`: pure C, unit-tested on the PC with fake ticks, like blink.
+
+### Decisions
+
+1. **Input = lamp output, not `ts.state`.** `main` passes `out.left || out.right` from `blink_update`, so the
+   buzzer is silent in OFF, clicks at once when a signal starts, and HAZARD (both sides in the same rhythm)
+   gives one click per edge, not two.
+2. **Short pulse at every lamp edge (on and off), pin 0 the rest of the time.** A passive buzzer only clicks
+   when the coil current changes. Holding the pin at 1 for the whole 333 ms phase would pass ~200 mA
+   (3.3 V / 16 ohm) without a louder click.
+3. **`BUZZER_PULSE_MS = 2`.** The tick is 1 ms, so the real pulse is 1 to 2 ms; 1 could be ~0 ms. Tuned by ear.
+4. **Edges in the same ms restart the pulse**, so blink catching up after a stalled `main` gives one click.
+5. **Hardware:** PE4 cannot drive the coil, so a 2N2222 switches it on the low side; the 1N4148 across the
+   buzzer (cathode to +3.3 V) takes the coil's reverse spike when the transistor turns off.
+
+API: `buzzer_init(&bz, now_ms)`; `uint8_t buzzer_update(&bz, lamp_on, now_ms)` once per loop pass, right after
+`blink_update`; `main` writes the result with `lamp_set(LAMP_BUZZER, ...)`. NULL -> 0 (coil off).
+
+### Risks
+
+- An **active** buzzer (own oscillator) would hardly sound with a 2 ms pulse: this design assumes a passive one.
+- The 2N2222 in TO-92 comes as PN2222A (E-B-C) and P2N2222A (C-B-E): with E and C swapped it barely conducts.
 
 ---
 
 ## 6. Software structure
 
 ```
-app/            pure C application logic, no hardware (turn_signal, blink, press_filter)
+app/            pure C application logic, no hardware (turn_signal, blink, press_filter, buzzer)
 firmware/       Keil project: startup, drivers (gpio, lamps, systick, buttons, uart), main.c
 tests/          Unity tests run on the PC; tests/unity is a git submodule
 docs/           design.md, devlog.md
@@ -203,6 +231,7 @@ Data flow (planned for integration):
 SysTick ISR -> g_ticks -> buttons_update() -> button_was_pressed() / button_is_pressed()
                                               -> press_filter_events() -> turn_signal_step()
                                                                       -> blink logic -> lamps
+                                                                                     -> buzzer (PE4)
 ```
 
 ---
@@ -223,6 +252,11 @@ single button (4), later button loses while the other is held (2), both edges in
 without held (2), HAZARD passes with LEFT / while both held / during a conflict (3), own held flag never
 drops a press (1), RIGHT works again after LEFT released (1), NULL input / output (2).
 
+Host (`tests/test_buzzer.c`, 11 tests, all pass, fake ticks):
+basic edges (lamp off silent, on and off edge each give a pulse, any non-zero counts as on), failure cases
+(edges in the same ms give one pulse, tick wrap, NULL), and with the real blink + turn_signal: LEFT clicks on
+every lamp edge, OFF silent, HAZARD clicks once per edge, switching side while lit adds no extra click.
+
 Build and run from the repo root:
 
 ```
@@ -234,6 +268,9 @@ build\test_blink.exe
 
 gcc -std=c99 -Wall -Wextra -I tests/unity/src -I app tests/test_press_filter.c app/press_filter.c tests/unity/src/unity.c -o build/test_press_filter.exe
 build\test_press_filter.exe
+
+gcc -std=c99 -Wall -Wextra -I tests/unity/src -I app tests/test_buzzer.c app/buzzer.c app/blink.c app/turn_signal.c tests/unity/src/unity.c -o build/test_buzzer.exe
+build\test_buzzer.exe
 ```
 
 Hardware checks done in Phase 3: 20 presses -> 20 events, 3 s hold -> 1 event, held during reset -> 0 events,
