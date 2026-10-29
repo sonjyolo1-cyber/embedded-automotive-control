@@ -20,6 +20,8 @@ void systick_init(uint32_t clock_frequency_hz) {
 	ST_CTRL_R |= (ST_CTRL_CLK_SRC | ST_CTRL_INTEN | ST_CTRL_EN);
 }
 
-void SysTick_Handler() {
+/* Called by the hardware through the vector table in startup_TM4C123.s, not from C. */
+// cppcheck-suppress unusedFunction
+void SysTick_Handler(void) {
 	g_ticks++;
 }

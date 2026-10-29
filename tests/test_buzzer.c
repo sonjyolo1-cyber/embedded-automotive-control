@@ -74,14 +74,13 @@ static void test_null_gives_coil_off(void)
 
 /* ================= With the real blink + turn_signal ================= */
 /* Run main's pipeline for every ms in [from, to): count pulses (pin 0 -> 1). */
-static uint32_t count_clicks(turn_signal_t *ts, blink_t *b, uint32_t from, uint32_t to)
+static uint32_t count_clicks(const turn_signal_t *ts, blink_t *b, uint32_t from, uint32_t to)
 {
     uint32_t t, clicks = 0U;
-    uint8_t prev_pin = 0U, pin;
-    blink_out_t out;
+    uint8_t prev_pin = 0U;
     for (t = from; t < to; t++) {
-        out = blink_update(b, ts->state, t);
-        pin = buzzer_update(&bz, (uint8_t)(out.left || out.right), t);
+        blink_out_t out = blink_update(b, ts->state, t);
+        uint8_t pin = buzzer_update(&bz, (uint8_t)(out.left || out.right), t);
         if ((pin != 0U) && (prev_pin == 0U)) {
             clicks++;
         }

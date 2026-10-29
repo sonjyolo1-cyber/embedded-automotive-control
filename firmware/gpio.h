@@ -121,7 +121,7 @@ static inline void gpio_write_pin(uint32_t port_base, uint8_t pin_num, uint8_t v
 static inline uint8_t gpio_read_pin(uint32_t port_base, uint8_t pin_num)
 {
     uint32_t offset = 1UL << (pin_num + 2);
-    volatile uint32_t *data = (volatile uint32_t *)(port_base + offset);
+    const volatile uint32_t *data = (const volatile uint32_t *)(port_base + offset);  /* read only */
     return (*data != 0) ? 1U : 0U;
 }
 

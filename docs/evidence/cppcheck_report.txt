@@ -1,0 +1,17 @@
+cppcheck report
+Date: 2026-10-29, Cppcheck 2.13.0
+
+Command (repo root):
+  cppcheck --enable=all --inconclusive --std=c99 --platform=unix32 -I app -I firmware --suppress=missingIncludeSystem --inline-suppr app firmware
+
+First run: 3 findings
+  firmware/gpio.h:124  style constVariablePointer  'data' in gpio_read_pin can be pointer to const -> fixed (const volatile)
+  firmware/lamps.c:31  style unusedFunction       lamp_set_hazard never used               -> removed (main drives left/right)
+  firmware/systick.c:23 style unusedFunction      SysTick_Handler never used               -> false positive: called from the
+                                                  vector table in startup_TM4C123.s; inline suppression with a comment
+
+After the fixes:
+  0 findings (error, warning, style, performance, portability)
+
+Tests (tests/*.c, unusedFunction suppressed: setUp/tearDown are called by Unity):
+  first run: 3 style findings in test_buzzer.c count_clicks (scope, const) -> fixed; now 0.

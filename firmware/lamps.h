@@ -28,8 +28,7 @@ void lamp_set(lamp_id_t lamp, uint8_t value);
 
 void lamp_set_left(uint8_t value);
 void lamp_set_right(uint8_t value);
-void lamp_set_hazard(uint8_t value);
-void lamps_all_off();
+void lamps_all_off(void);
 
 
 #endif 

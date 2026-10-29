@@ -3,7 +3,7 @@
 Target: EK-TM4C123GXL LaunchPad (TM4C123GH6PM, Cortex-M4F), register-level C, no TivaWare.
 Host tests: GCC 14.2 (MSYS2 UCRT64) + Unity.
 
-Status: Phase 5 (verification) done, tag v0.5. Phase 6 (buzzer, R11) integrated on the board.
+Status: Phase 5 (verification) done, tag v0.5. Phase 6: buzzer (R11), watchdog WDT0 and cppcheck done.
 
 ---
 
@@ -215,10 +215,38 @@ API: `buzzer_init(&bz, now_ms)`; `uint8_t buzzer_update(&bz, lamp_on, now_ms)` o
 
 ---
 
+## 5d. Watchdog (WDT0)
+
+`app/watchdog.c/.h` (a hardware driver; to be moved to `firmware/`).
+
+### Decisions
+
+1. **Feed at the end of every main loop pass, never in an ISR.** SysTick keeps running when `main` hangs,
+   so a feed in `SysTick_Handler` would keep the chip alive while lamps and buzzer are frozen
+   (with PE4 possibly stuck at 1, ~200 mA through the coil).
+2. **Time-out 500 ms.** Longest normal pass ~1 ms (a state line fits the 16-byte FIFO; the ~5 ms banner runs
+   before the watchdog starts). 500 ms is about 1.5 blink cycles for the driver.
+3. **Restart in OFF.** The normal init path; behaviour after a watchdog reset equals power-on.
+4. **WDT0 resets on the second time-out**, so `WDTLOAD = clock_hz / 1000 * timeout_ms / 2` (12 500 000 at 50 MHz).
+   Divide first: `50e6 * 500` would overflow 32 bits.
+5. **`WDTTEST.STALL` set**: the counter stops while a debugger halts the CPU.
+6. **`RESEN` before `INTEN`**: configure, then start (`INTEN` is write-once until the next reset).
+   WDT interrupt not enabled in the NVIC; `WDTLOCK` not used.
+7. **Reset cause** read from `RESC` first thing in `main`, logged, then cleared (sticky bits).
+
+### Risks
+
+- A future loop pass close to 500 ms (for example a 200+ character print, ~17 ms, is still fine; a blocking
+  delay of seconds is not) would cause false resets.
+- Not using the first time-out interrupt: on a hang the outputs stay as they were for up to 500 ms.
+
+---
+
 ## 6. Software structure
 
 ```
-app/            pure C application logic, no hardware (turn_signal, blink, press_filter, buzzer)
+app/            pure C application logic, no hardware (turn_signal, blink, press_filter, buzzer);
+                watchdog.c/.h also sits here for now but is a hardware driver (to move to firmware/)
 firmware/       Keil project: startup, drivers (gpio, lamps, systick, buttons, uart), main.c
 tests/          Unity tests run on the PC; tests/unity is a git submodule
 docs/           design.md, devlog.md

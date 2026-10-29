@@ -139,3 +139,28 @@ because the code was not yet under version control.
   Lesson (third time after Phase 3): when host tests pass and the board does not, check the wiring path first.
 - Board check by ear: OFF silent, LEFT and HAZARD click on every lamp edge, no double click in HAZARD (R11 PASS).
 - Host suites: smoke 2, turn_signal 17, blink 13, press_filter 15, buzzer 11, all 0 failures.
+
+---
+
+## Phase 6 (cont.): watchdog and static analysis (from 2026-10-26)
+
+### 2026-10-26 to 10-29: watchdog WDT0
+- Decisions: feed on the last line of the main loop, not in SysTick (SysTick keeps running when `main` hangs,
+  so feeding there would hide the hang); time-out 500 ms (longest normal pass ~1 ms); restart in OFF
+  (the normal init path, no extra logic); `STALL` set so a breakpoint does not reset the chip.
+- WDT0 resets on the second time-out, so `WDTLOAD = clock/1000 * 500 / 2 = 12 500 000`. `RESEN` before `INTEN`
+  (configure, then start; `INTEN` is write-once). The WDT interrupt is not enabled in the NVIC.
+- Reset cause: `RESC` read first thing in `main`, printed (`reset: watchdog` / `pin` / `power-on`), then cleared
+  (the bits are sticky).
+- Test: `WDT_SELFTEST 1` made HAZARD hang `main` on purpose; the chip reset and logged `reset: watchdog`.
+  Normal run 1-2 min without a reset; Stop in the debugger for ~10 s, Run again: no reset (`STALL` works).
+- Bug: linker L6200E "Symbol main multiply defined (by buttons.o and main.o)": `main.c` content had been pasted
+  into the `buttons.c` tab. Fixed with `git checkout -- firmware/buttons.c`.
+- `main.c` cleaned up for normal use: R8 probe and `WDT_SELFTEST` removed (both stay in git history).
+
+### 2026-10-29: cppcheck
+- Cppcheck 2.13, `--enable=all --inconclusive` on `app/` and `firmware/`: 3 findings, now 0.
+  `gpio_read_pin` pointer made `const volatile`; unused `lamp_set_hazard` removed; `SysTick_Handler` flagged as
+  unused is a false positive (called from the vector table), suppressed inline with a comment.
+  Tests: 3 style findings in `test_buzzer.c` fixed. Report in `docs/evidence/cppcheck_report.txt`.
+- README written: behaviour, hardware, architecture, state diagram, verification, bugs, build steps.
