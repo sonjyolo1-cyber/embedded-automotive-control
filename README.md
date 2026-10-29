@@ -69,7 +69,7 @@ app/        pure C, no register access, unit-tested on the PC:
             turn_signal (state machine), blink (1.5 Hz phase), press_filter (button conflicts),
             buzzer (tick pulses)
 firmware/   Keil uVision project: startup, drivers (gpio, lamps, systick, buttons, uart), main.c
-            (watchdog.c/.h is a hardware driver; it currently sits in app/, see "Next steps")
+            (watchdog.c/.h also sits in app/, the one hardware driver outside firmware/)
 tests/      Unity tests run with GCC on the PC; tests/unity is a git submodule
 docs/       design.md (decisions and why), devlog.md, test_plan.md, evidence/
 ```
@@ -210,14 +210,6 @@ cppcheck --enable=all --inconclusive --std=c99 --platform=unix32 -I app -I firmw
 - Measure before changing code: two of the hardest bugs were wiring, and one "debounce bug" was a type.
 - Writing requirements that can be tested, and keeping them in step with design decisions made later.
 - Deciding where a safety mechanism goes: a watchdog fed from an interrupt protects nothing.
-
-## Next steps
-
-- Port to the STM32 Blue Pill (STM32F103C8T6) with `app/` unchanged; only `firmware/` drivers change.
-- Move `watchdog.c/.h` from `app/` to `firmware/` (it is a hardware driver).
-- `test_buttons.c` with fake ticks for the debounce driver (closes the R7 open item).
-- Use the watchdog's first time-out interrupt to switch the outputs off and log where the loop hung.
-- R10 (optional): a short tap flashes exactly three times (lane change).
 
 ## License
 
