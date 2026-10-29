@@ -7,6 +7,7 @@
 #include "blink.h"
 #include "press_filter.h"
 #include "buzzer.h"
+#include "watchdog.h"                   /* [WDT 1] */
 
 extern uint32_t SystemCoreClock;
 extern void SystemCoreClockUpdate();
@@ -17,6 +18,8 @@ extern void SystemCoreClockUpdate();
  * once per loop pass:
  *   g_ticks -> buttons -> press_filter -> turn_signal -> blink -> lamps -> buzzer,
  *   and one UART line each time the state changes.
+ * The watchdog is fed once at the END of every pass: if any step hangs, the
+ * chip resets after WDT_TIMEOUT_MS and starts again in OFF.
  */
 
 /* ------------------------------------------------------------------------
@@ -26,6 +29,14 @@ extern void SystemCoreClockUpdate();
  * 0 = normal build: every line below between #if/#endif is not compiled.
  * ------------------------------------------------------------------------ */
 #define MEASURE_LATENCY  0
+
+/* ------------------------------------------------------------------------
+ * [WDT 2] Watchdog (Phase 6).
+ * WDT_SELFTEST 1 = pressing HAZARD makes main hang on purpose, to prove the
+ *                  watchdog resets the chip. 0 = normal build.
+ * ------------------------------------------------------------------------ */
+#define WDT_SELFTEST     1
+#define WDT_TIMEOUT_MS   500U   /* longest normal loop pass is ~1 ms */
 
 #if MEASURE_LATENCY
 #define LAT_PORTB_BASE   0x40005000UL  /* GPIO Port B (APB), same base as buttons.c */
@@ -49,11 +60,27 @@ static void log_state(state_t s)
 	uart_puts("\r\n");
 }
 
+/* [WDT 3] Print why the chip started: "reset: watchdog", "reset: pin", ... */
+static void log_reset_cause(uint32_t cause)
+{
+	uart_puts("reset:");
+	if ((cause & RESET_CAUSE_WDT0)      != 0U) { uart_puts(" watchdog");  }
+	if ((cause & RESET_CAUSE_POWER_ON)  != 0U) { uart_puts(" power-on");  }
+	if ((cause & RESET_CAUSE_PIN)       != 0U) { uart_puts(" pin");       }
+	if ((cause & RESET_CAUSE_BROWN_OUT) != 0U) { uart_puts(" brown-out"); }
+	if ((cause & RESET_CAUSE_SOFTWARE)  != 0U) { uart_puts(" software");  }
+	uart_puts("\r\n");
+}
+
 int main(){
 	turn_signal_t ts;
 	blink_t blink;
 	buzzer_t bz;
 	state_t logged_state;
+	uint32_t reset_cause;                /* [WDT 4] */
+
+	/* [WDT 4] Read the reset cause FIRST, before any init code. */
+	reset_cause = watchdog_take_reset_cause();
 
 	SystemCoreClockUpdate();
 	uart_init(SystemCoreClock, 115200U);
@@ -65,6 +92,7 @@ int main(){
 	uart_puts("SystemCoreClock = ");
 	uart_put_uint(SystemCoreClock);
 	uart_puts(" Hz\r\n");
+	log_reset_cause(reset_cause);        /* [WDT 5] */
 
 	turn_signal_init(&ts);
 	blink_init(&blink, g_ticks);
@@ -80,6 +108,9 @@ int main(){
 	lat_max       = 0U;
 	uart_puts("R8: press LEFT only\r\n");
 #endif
+
+	/* [WDT 6] Start the watchdog last, after all init and the banner. */
+	watchdog_init(SystemCoreClock, WDT_TIMEOUT_MS);
 
 	while(1) {
 		uint32_t now = g_ticks;         /* one time value for the whole pass */
@@ -114,6 +145,15 @@ int main(){
 		in.hazard_pressed = button_was_pressed(BUTTON_HAZARD);
 		in.left_held      = button_is_pressed(BUTTON_LEFT);
 		in.right_held     = button_is_pressed(BUTTON_RIGHT);
+
+#if WDT_SELFTEST
+		/* [WDT 7] Test only: HAZARD = hang on purpose. SysTick keeps running,
+		 * main never reaches watchdog_feed(), the chip must reset in ~500 ms. */
+		if (in.hazard_pressed != 0U) {
+			uart_puts("WDT selftest: hang\r\n");
+			for (;;) { }
+		}
+#endif
 
 		/* 3. Drop conflicting presses, then feed the state machine in order. */
 		n = press_filter_events(&in, ev);
@@ -150,5 +190,8 @@ int main(){
 			}
 #endif
 		}
+
+		/* [WDT 8] Last line of the pass: only reached if every step above ran. */
+		watchdog_feed();
 	}
 }

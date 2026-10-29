@@ -489,6 +489,16 @@
               <FileType>5</FileType>
               <FilePath>..\app\buzzer.h</FilePath>
             </File>
+            <File>
+              <FileName>watchdog.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\watchdog.c</FilePath>
+            </File>
+            <File>
+              <FileName>watchdog.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\app\watchdog.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
