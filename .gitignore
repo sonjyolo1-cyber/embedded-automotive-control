@@ -29,3 +29,7 @@ firmware/Listings/
 *.uvguix.*
 # Editor settings (machine-specific)
 .vscode/
+
+# DeepTutor workspace data
+.deeptutor/
+outputs/
