@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" font-family="Arial, Helvetica, sans-serif" font-size="13">
+  <defs>
+    <marker id="aY" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#d4a000"/></marker>
+    <marker id="aG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2e9e44"/></marker>
+  </defs>
+  <rect width="1000" height="520" fill="#ffffff"/>
+  <text x="30" y="38" font-size="18" font-weight="bold" fill="#111">Buổi 1 — Đấu dây Tiva C ↔ Blue Pill 1 qua bus CAN</text>
+
+  <!-- Tiva C -->
+  <rect x="30" y="70" width="220" height="300" rx="8" fill="#fdecec" stroke="#b42318" stroke-width="2"/>
+  <text x="140" y="96" text-anchor="middle" font-weight="bold" fill="#111">Tiva C LaunchPad</text>
+  <text x="140" y="114" text-anchor="middle" fill="#555">EK-TM4C123GXL</text>
+  <text x="240" y="154" text-anchor="end" fill="#111">PE5 (J1-6) · CAN0Tx</text>
+  <text x="240" y="204" text-anchor="end" fill="#111">PE4 (J1-5) · CAN0Rx</text>
+  <text x="240" y="254" text-anchor="end" fill="#111">3.3V (J1-1)</text>
+  <text x="240" y="304" text-anchor="end" fill="#111">GND</text>
+
+  <!-- Module #1 -->
+  <text x="420" y="110" text-anchor="middle" font-weight="bold" fill="#111">SN65HVD230 #1</text>
+  <rect x="330" y="120" width="180" height="210" rx="8" fill="#e8f0fe" stroke="#1d4ed8" stroke-width="2"/>
+  <text x="340" y="154" fill="#111">TX</text>
+  <text x="340" y="204" fill="#111">RX</text>
+  <text x="340" y="254" fill="#111">3.3V</text>
+  <text x="340" y="304" fill="#111">GND</text>
+  <text x="500" y="184" text-anchor="end" fill="#111">CANH</text>
+  <text x="500" y="244" text-anchor="end" fill="#111">CANL</text>
+  <text x="420" y="352" text-anchor="middle" fill="#111">Jumper 120 Ω: CẮM</text>
+
+  <!-- Module #2 -->
+  <text x="680" y="110" text-anchor="middle" font-weight="bold" fill="#111">SN65HVD230 #2</text>
+  <rect x="590" y="120" width="180" height="210" rx="8" fill="#e8f0fe" stroke="#1d4ed8" stroke-width="2"/>
+  <text x="600" y="184" fill="#111">CANH</text>
+  <text x="600" y="244" fill="#111">CANL</text>
+  <text x="760" y="154" text-anchor="end" fill="#111">TX</text>
+  <text x="760" y="204" text-anchor="end" fill="#111">RX</text>
+  <text x="760" y="254" text-anchor="end" fill="#111">3.3V</text>
+  <text x="760" y="304" text-anchor="end" fill="#111">GND</text>
+  <text x="680" y="352" text-anchor="middle" fill="#111">Jumper 120 Ω: CẮM</text>
+
+  <!-- Blue Pill -->
+  <rect x="850" y="70" width="140" height="300" rx="8" fill="#e6f4f1" stroke="#0f766e" stroke-width="2"/>
+  <text x="920" y="96" text-anchor="middle" font-weight="bold" fill="#111">Blue Pill 1</text>
+  <text x="920" y="114" text-anchor="middle" fill="#555">STM32F103C8</text>
+  <text x="858" y="154" fill="#111">PB9 · CAN_TX</text>
+  <text x="858" y="204" fill="#111">PB8 · CAN_RX</text>
+  <text x="858" y="254" fill="#111">3.3V</text>
+  <text x="858" y="304" fill="#111">GND</text>
+  <text x="920" y="352" text-anchor="middle" fill="#555">remap CAN</text>
+
+  <!-- Tiva side wires -->
+  <line x1="250" y1="150" x2="328" y2="150" stroke="#d4a000" stroke-width="3" marker-end="url(#aY)"/>
+  <line x1="330" y1="200" x2="252" y2="200" stroke="#2e9e44" stroke-width="3" marker-end="url(#aG)"/>
+  <line x1="250" y1="250" x2="330" y2="250" stroke="#d62828" stroke-width="3"/>
+  <line x1="250" y1="300" x2="330" y2="300" stroke="#222" stroke-width="3"/>
+
+  <!-- Blue Pill side wires -->
+  <line x1="850" y1="150" x2="772" y2="150" stroke="#d4a000" stroke-width="3" marker-end="url(#aY)"/>
+  <line x1="770" y1="200" x2="848" y2="200" stroke="#2e9e44" stroke-width="3" marker-end="url(#aG)"/>
+  <line x1="770" y1="250" x2="850" y2="250" stroke="#d62828" stroke-width="3"/>
+  <line x1="770" y1="300" x2="850" y2="300" stroke="#222" stroke-width="3"/>
+
+  <!-- CAN bus -->
+  <line x1="510" y1="180" x2="590" y2="180" stroke="#e76f51" stroke-width="4"/>
+  <line x1="510" y1="240" x2="590" y2="240" stroke="#1d4ed8" stroke-width="4"/>
+  <text x="550" y="396" text-anchor="middle" fill="#111">Bus CAN 500 kbit/s: CANH ↔ CANH, CANL ↔ CANL (xoắn đôi)</text>
+
+  <!-- Common ground -->
+  <path d="M140 370 V440 H920 V370" fill="none" stroke="#222" stroke-width="3"/>
+  <text x="530" y="432" text-anchor="middle" fill="#111">GND chung giữa hai board</text>
+
+  <!-- Legend -->
+  <g font-size="12" fill="#111">
+    <line x1="30" y1="490" x2="60" y2="490" stroke="#d4a000" stroke-width="3"/><text x="66" y="494">TX (MCU → module)</text>
+    <line x1="200" y1="490" x2="230" y2="490" stroke="#2e9e44" stroke-width="3"/><text x="236" y="494">RX (module → MCU)</text>
+    <line x1="370" y1="490" x2="400" y2="490" stroke="#d62828" stroke-width="3"/><text x="406" y="494">3.3V</text>
+    <line x1="460" y1="490" x2="490" y2="490" stroke="#222" stroke-width="3"/><text x="496" y="494">GND</text>
+    <line x1="550" y1="490" x2="580" y2="490" stroke="#e76f51" stroke-width="4"/><text x="586" y="494">CANH</text>
+    <line x1="650" y1="490" x2="680" y2="490" stroke="#1d4ed8" stroke-width="4"/><text x="686" y="494">CANL</text>
+  </g>
+</svg>
