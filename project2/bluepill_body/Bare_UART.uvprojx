@@ -49,7 +49,7 @@
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
           <OutputDirectory>.\Objects\</OutputDirectory>
-          <OutputName>project2</OutputName>
+          <OutputName>Bare_UART</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>0</CreateHexFile>
@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>.\inc</IncludePath>
+              <IncludePath></IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -382,47 +382,52 @@
       </TargetOption>
       <Groups>
         <Group>
-          <GroupName>src</GroupName>
+          <GroupName>Source Group 1</GroupName>
           <Files>
             <File>
-              <FileName>clock.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\src\clock.c</FilePath>
+              <FileName>uart.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\uart.h</FilePath>
             </File>
             <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\src\main.c</FilePath>
-            </File>
-            <File>
-              <FileName>systick.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\src\systick.c</FilePath>
+              <FilePath>.\main.c</FilePath>
             </File>
             <File>
               <FileName>uart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\src\uart.c</FilePath>
+              <FilePath>.\uart.c</FilePath>
             </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>inc</GroupName>
-          <Files>
+            <File>
+              <FileName>clock.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\clock.c</FilePath>
+            </File>
             <File>
               <FileName>clock.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\inc\clock.h</FilePath>
+              <FilePath>.\clock.h</FilePath>
+            </File>
+            <File>
+              <FileName>systick.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\systick.c</FilePath>
             </File>
             <File>
               <FileName>systick.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\inc\systick.h</FilePath>
+              <FilePath>.\systick.h</FilePath>
             </File>
             <File>
-              <FileName>uart.h</FileName>
+              <FileName>can.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\can.c</FilePath>
+            </File>
+            <File>
+              <FileName>can.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\inc\uart.h</FilePath>
+              <FilePath>.\can.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -483,7 +488,7 @@
   <LayerInfo>
     <Layers>
       <Layer>
-        <LayName>project2</LayName>
+        <LayName>Bare_UART</LayName>
         <LayPrjMark>1</LayPrjMark>
       </Layer>
     </Layers>
